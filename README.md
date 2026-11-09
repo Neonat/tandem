@@ -4,6 +4,14 @@ Tandem is a mobile-first family caregiving coordination app for adult children c
 
 The app runs locally without Supabase or OpenAI keys. Missing environment variables automatically enable seeded local data and mock AI responses.
 
+## Repository and versions
+
+[Neonat/tandem](https://github.com/Neonat/tandem) is the canonical source for this Build for Good project, created by Nathaniel, James, Daniel and Chime. Run the current app from the repository root using the setup below.
+
+- **Current app:** root `app/`, `components/` and `lib/`; package name `tandem-care`.
+- **Early prototype:** [`tandem/`](tandem/README.md), a separate local-first Next.js application retained for reference.
+- **Localisation snapshot:** an English/Chinese UI experiment from the private deployment copies is preserved as an unapplied patch. See [version relationships and preservation notes](docs/versions.md).
+
 ## Stack
 
 - Next.js App Router · TypeScript · Tailwind CSS
