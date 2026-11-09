@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCareData } from "@/components/providers/care-data-provider";
 import { useHomeState } from "@/lib/home-state";
+import { useT } from "@/lib/i18n";
 import { parseHandoverQR, type HandoverPlaintext } from "@/lib/qr-handover";
 import type { CareRecipient } from "@/lib/types";
 
@@ -247,19 +248,22 @@ function SplashForm({
   const [revealed, setRevealed] = React.useState(false);
   const [feedback, setFeedback] = React.useState<{ kind: "new"; name: string } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const t = useT();
 
   const trimmed = titleName.trim();
   const existing = trimmed ? home.findAccount(trimmed) : null;
   const hint = !trimmed
-    ? "Enter your username to begin"
+    ? t("splash.enterUsername")
     : existing
-      ? `Welcome back, ${existing.name}.`
-      : `We'll create a new account for "${trimmed}".`;
+      ? t("splash.welcomeBack", { name: existing.name })
+      : t("splash.willCreate", { name: trimmed });
 
   React.useEffect(() => {
     if (revealed) {
-      // Wait for the height transition to start so the focus doesn't fight the animation.
-      const id = window.setTimeout(() => inputRef.current?.focus(), 250);
+      const id = window.setTimeout(
+        () => inputRef.current?.focus({ preventScroll: true }),
+        550
+      );
       return () => window.clearTimeout(id);
     }
   }, [revealed]);
@@ -277,7 +281,7 @@ function SplashForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid w-full place-items-center bg-gradient-to-b from-white to-primary/5 p-8 text-center">
+    <div className="fixed inset-0 z-50 flex w-full flex-col items-center bg-gradient-to-b from-white to-primary/5 px-8 pt-[32vh] text-center">
       <form onSubmit={submit} className="flex w-full max-w-xs flex-col items-center gap-4">
         <button
           type="button"
@@ -289,14 +293,14 @@ function SplashForm({
           <div className="text-5xl font-bold tracking-tight">TANDEM</div>
         </button>
         <div
-          className={`grid w-full transition-all duration-500 ease-out ${
+          className={`grid w-full transition-[grid-template-rows,opacity] duration-500 ease-out ${
             revealed ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
           }`}
           aria-hidden={!revealed}
         >
-          <div className="flex flex-col items-center gap-4 overflow-hidden">
+          <div className="flex flex-col items-center gap-4 px-1 [overflow-y:clip]">
             <p className="text-sm text-muted-foreground" aria-live="polite">
-              {feedback ? `Account created for ${feedback.name}.` : hint}
+              {feedback ? t("splash.accountCreated", { name: feedback.name }) : hint}
             </p>
             <Input
               ref={inputRef}
@@ -305,20 +309,25 @@ function SplashForm({
                 onTitleNameChange(event.target.value);
                 setFeedback(null);
               }}
-              placeholder="Username"
-              aria-label="Username"
+              placeholder={t("splash.username")}
+              aria-label={t("splash.username")}
               autoComplete="username"
               tabIndex={revealed ? 0 : -1}
             />
             <Button type="submit" className="w-full" disabled={!trimmed} tabIndex={revealed ? 0 : -1}>
-              {existing ? "Continue" : "Create account"}
+              {existing ? t("splash.continue") : t("splash.createAccount")}
               <ArrowRight className="size-4" />
             </Button>
           </div>
         </div>
-        {!revealed ? (
-          <p className="mt-2 text-xs text-muted-foreground">Tap the logo to begin</p>
-        ) : null}
+        <p
+          className={`mt-2 text-xs text-muted-foreground transition-opacity duration-300 ${
+            revealed ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+          aria-hidden={revealed}
+        >
+          {t("splash.tapLogo")}
+        </p>
       </form>
     </div>
   );

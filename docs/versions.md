@@ -1,46 +1,36 @@
-# Tandem versions and preserved work
+# Tandem versions and shared source
 
-## Canonical source
+## Public collaborative repository
 
-[Neonat/tandem](https://github.com/Neonat/tandem) is the canonical repository. The current application is the root `tandem-care` package, with routes in `app/` and shared code in `components/` and `lib/`. At the review baseline, `847fd5b921ca1869b83c41ebc60e4869785a67c1`, this repository retains the project's 43-commit history.
+[Neonat/tandem](https://github.com/Neonat/tandem) is the public shared repository for this Build for Good project. It retains the project history and the collaborator access for `papermelon` and `JAMES-WLC`.
 
-The nested [`tandem/`](../tandem/README.md) directory is an earlier, independent local-first prototype. It has its own package and browser storage model; it is not a second setup step for the current app. Both packages happen to declare version `0.1.0`; those package versions do not establish which implementation is current.
+The current application is the root `tandem-care` package, with routes in `app/` and shared code in `components/` and `lib/`. The nested [`tandem/`](../tandem/README.md) directory is an earlier independent local-first prototype with its own package and browser storage model. It is not an additional setup step for the current app.
+
+## Shared-main integration
+
+The repository organisation review on 10 November 2026 compared source history rather than documentation timestamps. [papermelon/tandem-app](https://github.com/papermelon/tandem-app) retained five later main-branch commits after the common baseline `847fd5b921ca1869b83c41ebc60e4869785a67c1`, ending at `7c1d8fbbe37d16026124808f8dd5203b31228674`.
+
+Those shared-main commits are incorporated here with their history. Their net source changes cover partial English/Chinese localisation, the splash layout/focus behaviour and the Health page icon/title. The integration retains the existing `recipient` state and `CareProfileSummary` import used by Settings; the incoming version had removed those references while its later JSX still needed them.
+
+Unmerged experimental branches in either repository remain separate. The collaborator-owned repository has not been renamed, made private or otherwise modified by this organisation pass.
 
 ## Private deployment snapshots
 
-`Neonat/tandem-app` and `Neonat/tandem-app-1` began this review as private one-commit snapshots. Their reviewed default-branch trees were identical (`caccecaf36d541fc26318f45c2c5c6a326f86a17`):
+The following owned repositories are private historical deployment copies:
 
-| Repository | Reviewed commit | Relationship |
+| Current repository | Previous name | Original snapshot commit |
 | --- | --- | --- |
-| `Neonat/tandem-app` | `cef2d9039034b7b89f4b6841c4232174581eeefe` | Snapshot with partial localisation work |
-| `Neonat/tandem-app-1` | `ad76debb5594bc0cbff644730dd8d7d1d5402f04` | Same source tree as `tandem-app` |
+| [tandem-snapshot-a](https://github.com/Neonat/tandem-snapshot-a) | `tandem-app` | `cef2d9039034b7b89f4b6841c4232174581eeefe` |
+| [tandem-snapshot-b](https://github.com/Neonat/tandem-snapshot-b) | `tandem-app-1` | `ad76debb5594bc0cbff644730dd8d7d1d5402f04` |
 
-Use the canonical repository for future development. The snapshots remain unarchived because both have GitHub Production deployment records associated with Vercel. Their latest reported deployment statuses were failures at review time; this does not establish whether the Vercel projects are disconnected or unused. Confirm or repoint deployment connections before archiving either copy.
+Their application source matched each other at review time. They preserve the partial-localisation experiment and existing Vercel deployment records, rather than separate products or a preferred development branch. They remain unarchived so their deployment connections can be deliberately retired or repointed later.
 
-## Preserved localisation experiment
+## Historical localisation patch
 
-[`localisation-snapshot.patch`](localisation-snapshot.patch) preserves the exact five-file source delta from the canonical baseline to either snapshot:
+[`localisation-snapshot.patch`](localisation-snapshot.patch) preserves the original exact five-file source delta from the common baseline to the private snapshots. It was previously checked with `git apply --check` and applied in a temporary checkout; all five resulting files matched the snapshot blobs byte for byte.
 
-- Adds `lib/i18n.ts`: English and Chinese dictionaries, interpolation, English fallback and a hook using the saved caregiver language.
-- Wires translated labels into navigation, selected Settings headings/controls, the splash screen and the Health page title.
-- Includes the snapshot's splash layout/focus changes, Health icon adjustment and removal of an unused Settings import.
+That experiment is now represented in the shared-main integration above. The patch remains a historical preservation artifact and should not be applied again to the current source. Its original comparison excluded the generated `tandem/next-env.d.ts` deletion in the snapshots.
 
-This is partial UI localisation. Most page content remains English. The existing language picker lists eleven languages, but this experiment only supplies English and Chinese dictionaries; other choices fall back to English. It has not been adopted into the current application or represented as complete language support.
+Language support remains partial: navigation and selected Settings/onboarding labels have English and Chinese dictionaries, while much of the interface is still English. The language picker lists eleven languages; unsupported choices fall back to English. Existing mounted consumers read the saved language on mount and require a full page reload after changes. This does not establish complete translation quality or coverage.
 
-The only other tree difference was the snapshot's absence of `tandem/next-env.d.ts`, a generated Next.js declaration file. That deletion is excluded from the preservation patch.
-
-### Reviewing or adopting the patch
-
-The patch was checked against the canonical baseline with `git apply --check` and applied in a temporary checkout; all five resulting files matched the snapshot byte for byte. No runtime or language-quality validation is implied by that preservation check.
-
-For a future adoption, create a feature branch, review the unrelated splash changes separately, test language changes and persistence in the browser, check accessibility and text wrapping, and run the current app's tests, typecheck, lint and build. Submit functional changes through a pull request before merging.
-
-To inspect the preserved experiment at its original baseline:
-
-```bash
-git switch -c codex/review-tandem-localisation 847fd5b921ca1869b83c41ebc60e4869785a67c1
-git apply --check /absolute/path/to/localisation-snapshot.patch
-git apply /absolute/path/to/localisation-snapshot.patch
-```
-
-Use the patch from the documentation revision you are reading, since it was added after the original baseline. Applying it to newer code may require reconciliation.
+To inspect the historical delta independently, use a disposable checkout at `847fd5b921ca1869b83c41ebc60e4869785a67c1` and the preserved patch from this documentation revision. Use the public shared repository and its current setup guide for development.
