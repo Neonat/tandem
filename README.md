@@ -1,16 +1,26 @@
 # Tandem
 
-Tandem is a mobile-first family caregiving coordination app for adult children caring for an ageing parent. It covers a warm family feed, task ownership, AI-assisted capture, structured handovers between caregivers, meeting summaries, care-load visibility, simulated reassurance signals, and a celebratory **Caregiver Wrapped** moment when someone steps back from primary care.
+A family-caregiving coordination prototype that helps relatives share updates, divide care tasks and prepare handovers when responsibility changes. Built collaboratively for **Build for Good** by Nathaniel, James, Daniel and Chime.
 
-The app runs locally without Supabase or OpenAI keys. Missing environment variables automatically enable seeded local data and mock AI responses.
+A caregiver can review the family feed, capture a care update, assign follow-up tasks, check care load and guide an incoming caregiver through a structured handover. The local demo uses seeded data and mock AI responses when live integrations are not configured.
 
-## Repository and versions
+## What is built
 
-[Neonat/tandem](https://github.com/Neonat/tandem) is the canonical source for this Build for Good project, created by Nathaniel, James, Daniel and Chime. Run the current app from the repository root using the setup below.
+- A mobile-first care hub with timeline, task ownership and care-load views.
+- Capture and meeting flows that turn care information into reviewable records and suggested tasks.
+- A patient Health page, care-history Q&A and QR-based incoming-caregiver checklist.
+- Optional Supabase, OpenAI and Telegram integration paths, alongside a local demonstration mode.
+- Partial English/Chinese labels in navigation, Settings and onboarding. Other language choices fall back to English; much of the interface remains English. Reload the page after changing the saved language so already-mounted labels pick it up.
 
-- **Current app:** root `app/`, `components/` and `lib/`; package name `tandem-care`.
-- **Early prototype:** [`tandem/`](tandem/README.md), a separate local-first Next.js application retained for reference.
-- **Localisation snapshot:** an English/Chinese UI experiment from the private deployment copies is preserved as an unapplied patch. See [version relationships and preservation notes](docs/versions.md).
+## Team, source and versions
+
+This is the public shared repository, with the project history and collaborator access retained. The latest merged work from [papermelon/tandem-app](https://github.com/papermelon/tandem-app) is included; unmerged experimental branches are separate.
+
+Run the current app from the repository root. The nested [tandem/](tandem/README.md) application is an earlier independent prototype. [Version notes](docs/versions.md) explain the private deployment snapshots and the preserved localisation patch.
+
+**Status:** hackathon prototype. Care-team permission controls, live care-circle isolation and some handover persistence still need further work. AI output requires review; reassurance signals and parts of the demo are simulated. See the detailed integration and safety notes below.
+
+[Live prototype](https://tandem-nu-five.vercel.app) · [Source and versions](docs/versions.md)
 
 ## Stack
 
@@ -149,11 +159,9 @@ Tandem supports family caregiving coordination and does not provide medical advi
 
 ## Demo Auth
 
-The app starts with a lightweight Auth/onboarding screen:
+The entry screen uses the username splash described above. This local onboarding is separate from a live Supabase session.
 
-- **Continue as Rachel** forces local demo data and opens the existing Ah Muay care circle with Rachel, Ming, and Lina.
-- **Start fresh** forces local demo data with an empty care-recipient list so the onboarding flow can be shown.
-- Email magic-link sign-in uses Supabase Auth when `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are configured. Use this path when two people should edit the same shared Supabase care recipient profile.
+Email magic-link sign-in is available in **Settings** when `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are configured. Use this path when two people should edit the same shared Supabase care recipient profile.
 
 Supabase Auth currently bootstraps a `public.users` row for the signed-in person. In live mode, the Home profile selector reads the shared Supabase care recipient and profile edits are persisted through `/api/data/care-recipients/[recipientId]`.
 
@@ -162,7 +170,7 @@ For a live Supabase demo:
 1. Apply all migrations in `supabase/migrations`, including `20260612000000_add_care_recipient_profile.sql` and `20260613000000_add_care_recipient_relationship.sql`.
 2. Run `supabase/seed.sql`.
 3. Add `http://localhost:3000/auth/callback` and the deployed `/auth/callback` URL to Supabase Auth redirect URLs.
-4. Sign in with the email link instead of using **Continue as Rachel**.
+4. Open Settings, request the Supabase email link and sign in through that link.
 
 Production-grade care-circle scoping still needs stricter RLS, invite flows, and session-scoped API writes.
 
