@@ -78,7 +78,7 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` in client code. Tandem only uses it ins
 ## Supabase
 
 1. Create a Supabase project.
-2. Run `supabase/migrations/20260509000000_init_tandem.sql`.
+2. Run every SQL file in `supabase/migrations` in filename order, starting with `20260509000000_init_tandem.sql`.
 3. Run `supabase/seed.sql`.
 4. Create the env vars above.
 5. Restart `npm run dev`.
@@ -253,4 +253,5 @@ npm run dev          # next dev --webpack
 npm run build        # production build
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
+npm test             # date labels, task routing, and Telegram parsing
 ```

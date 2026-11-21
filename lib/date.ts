@@ -25,7 +25,9 @@ export function formatTime(value: string) {
 export function formatRelative(value: string) {
   const now = new Date();
   const target = new Date(value);
-  const diffDays = Math.round((target.getTime() - now.getTime()) / MS_PER_DAY);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDay = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate());
+  const diffDays = (targetDay - today) / MS_PER_DAY;
 
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Tomorrow";
