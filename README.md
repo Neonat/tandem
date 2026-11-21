@@ -1,257 +1,200 @@
 # Tandem
 
-A family-caregiving coordination prototype that helps relatives share updates, divide care tasks and prepare handovers when responsibility changes. Built collaboratively for **Build for Good** by Nathaniel, James, Daniel and Chime.
+Tandem is a family-caregiving coordination prototype built collaboratively for
+Build for Good by Nathaniel, James, Daniel, and Chime. Relatives can share care
+updates, divide follow-up tasks, and prepare a structured handover when another
+caregiver takes over.
 
-A caregiver can review the family feed, capture a care update, assign follow-up tasks, check care load and guide an incoming caregiver through a structured handover. The local demo uses seeded data and mock AI responses when live integrations are not configured.
+The local demo combines seeded care data with mock AI responses. Optional
+Supabase, OpenAI, and Telegram integrations explore shared profiles, document
+capture, and reviewable task extraction.
+
+[Live prototype](https://tandem-nu-five.vercel.app) · [Local setup](#local-setup) · [Version history](docs/versions.md) · [Demo briefing](docs/tandem-hackathon-judge-briefing.pdf)
 
 ## What is built
 
-- A mobile-first care hub with timeline, task ownership and care-load views.
-- Capture and meeting flows that turn care information into reviewable records and suggested tasks.
-- A patient Health page, care-history Q&A and QR-based incoming-caregiver checklist.
-- Optional Supabase, OpenAI and Telegram integration paths, alongside a local demonstration mode.
-- Partial English/Chinese labels in navigation, Settings and onboarding. Other language choices fall back to English; much of the interface remains English. Reload the page after changing the saved language so already-mounted labels pick it up.
+- A mobile-first care hub with a timeline, task ownership, and care-load views.
+- Document, voice, and meeting capture that proposes records and tasks for review.
+- A patient Health page with profile details and care-history Q&A that cites
+  recorded timeline items.
+- QR handover sessions with briefing, history, appointments, team, and checklist
+  acknowledgments, followed by a Caregiver Wrapped view for real completions.
+- A Telegram inbox for forwarded material and Save All or Ignore review.
+- Partial English and Chinese labels in navigation, Settings, and onboarding.
+  Most content remains English. Other language choices fall back to English;
+  reload after changing the saved language.
 
-## Team, source and versions
+## Stack and architecture
 
-This is the public shared repository, with the project history and collaborator access retained. The latest merged work from [papermelon/tandem-app](https://github.com/papermelon/tandem-app) is included; unmerged experimental branches are separate.
+| Technology | Role in Tandem |
+|---|---|
+| Next.js App Router and TypeScript | One application holds care pages and server routes for capture, data access, and Telegram. Shared types describe the records passed between them. |
+| React, Tailwind CSS, and shadcn/ui-style components | Build the mobile care hub, review forms, task views, and handover wizard. |
+| Local state and localStorage | Keep the no-credentials demo usable and preserve local accounts and care sessions in the browser. |
+| Supabase Auth, Postgres, and Storage | Add email-link sign-in, shared care records, and document storage through the live integration paths. |
+| OpenAI and Zod | Server routes request structured extraction, meeting summaries, and care-history answers. Missing keys and handled provider failures return labeled mock output. |
+| `qrcode.react` | Displays a handover payload as a QR code. The prototype's QR transport is separate from production access control. |
+| Telegram Bot API | Receives forwarded text and files, links a sender to a care circle, and returns a review preview. |
 
-Run the current app from the repository root. The nested [tandem/](tandem/README.md) application is an earlier independent prototype. [Version notes](docs/versions.md) explain the private deployment snapshots and the preserved localisation patch.
+```mermaid
+flowchart LR
+    Family[Family member] --> UI[Next.js care hub]
+    UI --> Local[Local demo state]
+    UI --> Routes[Server routes]
+    Routes --> Supabase[(Supabase)]
+    Routes --> AI[OpenAI]
+    Telegram --> Routes
+```
 
-**Status:** hackathon prototype. Care-team permission controls, live care-circle isolation and some handover persistence still need further work. AI output requires review; reassurance signals and parts of the demo are simulated. See the detailed integration and safety notes below.
+The implementation explores the transition between a local demonstration and
+shared caregiving data. That boundary is visible in
+[`care-data-provider.tsx`](components/providers/care-data-provider.tsx),
+which manages browser state and calls persistence routes in live mode.
+The live paths remain incomplete; they do not establish production isolation
+between care circles.
 
-[Live prototype](https://tandem-nu-five.vercel.app) · [Source and versions](docs/versions.md)
+## Local setup
 
-## Stack
-
-- Next.js App Router · TypeScript · Tailwind CSS
-- shadcn/ui-style components
-- Supabase Auth, Postgres, and Storage ready
-- OpenAI API routes with mock fallback
-- Vercel-ready environment variables
-- `qrcode.react` for handover QR generation
-
-## Local Setup
+Use Node.js 22. Run the current application from the repository root:
 
 ```bash
-npm install
+git clone https://github.com/Neonat/tandem.git
+cd tandem
+npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [localhost:3000](http://localhost:3000). Tap the **TANDEM** logo, then enter
+a username. This creates or reopens a local browser account. It is separate
+from Supabase authentication. With no credentials, the demo loads local seeded
+data and mock AI responses.
 
-The first screen is a splash. Tap the **TANDEM** logo to reveal a username field — type any name to start. Existing usernames (anyone already saved in localStorage) get a "Welcome back" prompt; new usernames create a fresh account on the spot.
+The independent [nested prototype](tandem/README.md) is historical reference,
+not another installation step. It has its own Next.js package, IndexedDB data,
+and service worker. Use a separate origin if exploring that version.
 
-## Environment Variables
+### Configure live services
 
-Create `.env.local` when you want live integrations:
+Create an uncommitted `.env.local` for the integrations you need:
 
-```bash
+```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 OPENAI_API_KEY=
 ```
 
-Optional model overrides:
+`SUPABASE_SERVICE_ROLE_KEY` is used in server routes and must remain out of
+client code. Optional model overrides are `OPENAI_MODEL` and
+`OPENAI_TRANSCRIBE_MODEL`; their source defaults are `gpt-5.5` and
+`gpt-4o-mini-transcribe`. Model access and live output quality require separate
+validation.
 
-```bash
-OPENAI_MODEL=gpt-5.5
-OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
-```
+For Supabase:
 
-Telegram forwarding capture:
+1. Create a project and apply every SQL file in
+   [`supabase/migrations/`](supabase/migrations/) in filename order.
+2. Run [`supabase/seed.sql`](supabase/seed.sql).
+3. Set all three Supabase variables above and restart the app.
+4. Add `http://localhost:3000/auth/callback` and the deployed `/auth/callback`
+   address to the project's Auth redirect URLs.
+5. Request an email sign-in link in **Settings** and open that link.
 
-```bash
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+The migrations define care circles, recipients, members, timeline records,
+tasks, documents, capture records, Telegram links, signals, and legacy
+handovers. They also create the private `documents` Storage bucket. Apply
+all migrations, including the profile, relationship, and Telegram-linking
+changes; the initial schema alone is insufficient.
+
+Live sign-in provisions a `public.users` row. The Home selector reads a shared
+care recipient, and profile edits use `/api/data/care-recipients/[recipientId]`.
+The newer handover sessions and acknowledgments are managed by the client
+provider and lack a complete shared persistence model.
+
+### Configure Telegram capture
+
+Set these values for the server deployment:
+
+```dotenv
+NEXT_PUBLIC_APP_URL=https://your-deployment.example
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=
-TELEGRAM_ALLOWED_USER_IDS=
 TELEGRAM_BOT_USERNAME=
+TELEGRAM_ALLOWED_USER_IDS=
 ```
 
-For Vercel, set `NEXT_PUBLIC_APP_URL` to the production URL. `TELEGRAM_ALLOWED_USER_IDS` is optional; when set, use comma-separated Telegram numeric user IDs to keep the bot private.
-`TELEGRAM_BOT_USERNAME` is optional; Tandem can derive it from `TELEGRAM_BOT_TOKEN`, but setting it avoids an extra Bot API lookup when generating connect links.
+Create a bot with Telegram's `@BotFather`. Register
+`<NEXT_PUBLIC_APP_URL>/api/telegram/webhook` as its webhook, with
+`TELEGRAM_WEBHOOK_SECRET` as the secret token. A deployment must be reachable
+by Telegram. The optional username avoids a bot lookup; the optional allow-list
+accepts comma-separated numeric sender IDs.
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` in client code. Tandem only uses it inside server routes.
+In a signed-in Tandem account, use **Settings > Connect Telegram** to create a
+short-lived `/start <token>` link for the active care recipient. Accepted
+forwarded material is attached to that user's care circle. The bot stores the
+source, extracts proposed care records, and returns Save All or Ignore actions.
+Pending items appear in `/inbox`.
 
-## Supabase
+Suggested bot commands are `start`, `status`, `recipient`, and `unlink`.
+An allow-list does not replace account and care-circle linking.
 
-1. Create a Supabase project.
-2. Run every SQL file in `supabase/migrations` in filename order, starting with `20260509000000_init_tandem.sql`.
-3. Run `supabase/seed.sql`.
-4. Create the env vars above.
-5. Restart `npm run dev`.
+## Demo walkthrough
 
-The migration creates:
+1. Enter `Sarah` at the splash, select **Mum**, and choose **Begin care**.
+2. Review the timeline, open **Tasks**, and inspect the unclaimed transport task.
+3. In **Capture**, use the demo memo and review the extracted summary and tasks.
+4. Assign follow-up work and inspect **Care load**.
+5. Open **Health**, inspect the profile, and ask about recorded vitals.
+6. Generate a handover QR and choose **Simulate handover**. Acknowledge each
+   wizard tab and complete the checklist.
+7. Return to Health. Complete a real handover to see Caregiver Wrapped, then
+   choose **End handover** to archive the session.
+8. Use **Meeting** to turn meeting notes into proposed tasks.
 
-- `users`, `care_circles`, `care_recipients`, `circle_members`
-- `timeline_items`, `tasks`, `documents`
-- `capture_events`, `extracted_items`
-- `telegram_users`, `care_signals`, `handovers`
-- private Storage bucket: `documents`
+Simulated completions skip Wrapped. The original one-page AI briefing remains
+at `/handover/legacy`. The [judge briefing](docs/tandem-hackathon-judge-briefing.pdf)
+provides more presentation context.
 
-> Handover v2 (patient-centric page, sessions, acknowledgments, permissions) currently lives in client state + localStorage when running in mock mode. A `handover_sessions` table is on the spec roadmap — until then, the in-memory provider in `components/providers/care-data-provider.tsx` is the source of truth.
-
-## Mock Mode
-
-When Supabase keys are absent, `/api/demo-data` returns local seeded data.
-
-When `OPENAI_API_KEY` is absent, AI routes return realistic mock outputs:
-
-- `/api/ai/extract`
-- `/api/ai/handover` (legacy briefing)
-- `/api/ai/care-history-chat` (Health page Q&A)
-- `/api/ai/meeting`
-- `/api/ai/voice`
-
-This keeps the demo stable for offline reviews.
-
-## The Health (Handover) Page
-
-`/handover` is the patient-centric **Health** page (look for the stethoscope icon in the bottom nav). It composes four sections plus a care-team panel:
-
-1. **Patient profile summary** — name, age, relationship, medical conditions, allergies, current medications, emergency contacts, and live counts of active caregivers vs. family members.
-2. **Care-history chat** — ask questions about the patient ("What were her last vitals?"); answers come back with cited timeline sources, confidence ratings, and a `mock` badge when running without an OpenAI key.
-3. **Generate handover QR** — one-click QR with a 1-hour expiry. While a session is active you see the QR, a live countdown, a real-time **Incoming progress** card (per-tab acknowledgments + checklist X/Y), a **Simulate handover** button, and **Cancel**. Once the session is complete, the QR card collapses into a completion summary with shortcuts to the handover summary and Caregiver Wrapped.
-4. **Add to care team** — onboard family members with role-based permission defaults. Permissions are toggled per-member (UI only — enforcement is on the roadmap).
-5. **Care team & permissions** — list every member, edit their permissions inline, see access expiry for temporary caregivers, and remove non-primary members.
-
-### Incoming caregiver wizard
-
-Scanning the QR (or pressing **Simulate handover**) opens a 5-tab wizard at `/handover/[id]`:
-
-- **Briefing**, **History**, **Appts**, **Team**, **Checklist**
-
-Each tab has an "I have read" / "I acknowledge" / "I'm ready to start" affordance. Acknowledging a tab auto-advances to the next one. The Checklist tab additionally requires every item to be ticked before its ack button enables. Once all five are acknowledged the view auto-routes to `/handover/[id]/complete`.
-
-### Simulate vs. real handover
-
-Pressing **Simulate handover** marks the session `simulated: true`. The completion screen then shows only **Handover complete** + **Back to handover** — no Caregiver Wrapped card. Real (non-simulated) completions still see Wrapped.
-
-After Wrapped, the departing caregiver can press **End handover** on the final card to archive the completed session — the **Incoming progress** card on `/handover` then disappears and the page returns to the empty-state QR generator.
-
-### Legacy AI briefing
-
-The original one-page AI briefing flow is preserved at `/handover/legacy` for reference.
-
-## Demo Script
-
-1. Splash → tap the **TANDEM** logo → enter a username (or "Sarah" for the seeded account).
-2. Pick **Mum** from the patient selector → **Begin care**.
-3. Open **Tasks** to show the unclaimed rehab transport.
-4. Upload a doctor memo via **Capture** (or tap "Use demo memo"). AI extracts a summary and suggested tasks.
-5. Assign transport to Ming and admin follow-up to Lina.
-6. Show **Care load** — Rachel has carried most tasks.
-7. Show the simulated care signal (no usual morning movement).
-8. Open **Health** (the stethoscope tab):
-   - Highlight the patient profile and emergency contacts.
-   - Ask the chat *"What were her last vitals?"* — show the cited timeline source.
-   - Press **Generate handover QR**.
-   - Press **Simulate handover** → walk the wizard (auto-advance) → land on the simulated completion screen.
-   - Press **Back to handover** — the completion shortcut to **Open handover summary** stays on screen.
-9. Generate a real handover, complete it, then open **View Caregiver Wrapped** → tap **End handover** on the final card to clean up.
-10. Paste family meeting notes in **Meeting** and convert decisions into tasks.
-
-## Safety Notes
-
-Tandem supports family caregiving coordination and does not provide medical advice. Medication features are reminders and notes only, not clinical recommendations. AI outputs are marked for review before saving. The care-history chat answers strictly from recorded timeline data and surfaces a `not_found` confidence when the answer isn't in the data.
-
-## Demo Auth
-
-The entry screen uses the username splash described above. This local onboarding is separate from a live Supabase session.
-
-Email magic-link sign-in is available in **Settings** when `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are configured. Use this path when two people should edit the same shared Supabase care recipient profile.
-
-Supabase Auth currently bootstraps a `public.users` row for the signed-in person. In live mode, the Home profile selector reads the shared Supabase care recipient and profile edits are persisted through `/api/data/care-recipients/[recipientId]`.
-
-For a live Supabase demo:
-
-1. Apply all migrations in `supabase/migrations`, including `20260612000000_add_care_recipient_profile.sql` and `20260613000000_add_care_recipient_relationship.sql`.
-2. Run `supabase/seed.sql`.
-3. Add `http://localhost:3000/auth/callback` and the deployed `/auth/callback` URL to Supabase Auth redirect URLs.
-4. Open Settings, request the Supabase email link and sign in through that link.
-
-Production-grade care-circle scoping still needs stricter RLS, invite flows, and session-scoped API writes.
-
-## Telegram Bot Setup
-
-1. Create a bot with Telegram `@BotFather`.
-2. Add `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `NEXT_PUBLIC_APP_URL` to Vercel.
-3. Deploy the app.
-4. Register the webhook:
+## Checks
 
 ```bash
-curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=<NEXT_PUBLIC_APP_URL>/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+npm test
+npm run typecheck
+npm run lint
+npm run build
 ```
 
-Forward an image, screenshot, PDF, or text message to the private bot. Tandem stores the source in Supabase, extracts care details with OpenAI, and sends back a Save All / Ignore preview. Pending items are visible in `/inbox`.
+The Node test runner covers calendar-day labels, task routing, and Telegram
+parsing. The TypeScript and ESLint configurations exclude the nested historical
+app. These checks do not validate a live Supabase deployment, provider output,
+Telegram delivery, or a complete browser handover.
 
-Telegram must be linked from a signed-in Tandem account before forwarded items are accepted. In Settings, use **Connect Telegram** to generate a short-lived `/start <token>` link for the active care recipient. The webhook validates the token, links the Telegram sender to the Tandem user and care circle, then stores future forwarded items against that care circle.
+## Prototype limits
 
-Recommended bot commands:
+- Care-team permission toggles are UI state. Live care-circle isolation needs
+  stricter row-level security, invite flows, and session-scoped API writes.
+- Handover v2 sessions and acknowledgments do not have complete shared backend
+  persistence. A local browser demonstration is not a cross-device guarantee.
+- The QR helper uses a shared key embedded in client source. Its payload is a
+  demo transport, not a secure invitation or authorization mechanism.
+- Reassurance signals and parts of the demo are simulated.
+- AI output needs human review before saving. Care-history answers are prompted
+  to use supplied timeline data and return `not_found` when evidence is absent;
+  live model adherence is not guaranteed by that prompt.
+- Tandem coordinates care. It does not provide medical advice or clinical
+  medication recommendations.
 
-```text
-start - Connect Tandem or show link status
-status - Show linked Tandem care space
-recipient - Show active care recipient
-unlink - Disconnect Telegram from Tandem
-```
+## Team and source history
 
-For production, prefer token-based linking over `TELEGRAM_ALLOWED_USER_IDS`. The allow-list is useful for demos, but every accepted Telegram sender should still resolve through `telegram_users -> users -> circle_members -> care_circles`.
+Tandem is a collective Build for Good project by Nathaniel, James, Daniel, and
+Chime. This public shared repository retains the project history and
+collaborator access. It includes merged work from
+[papermelon/tandem-app](https://github.com/papermelon/tandem-app).
 
-## Project Structure
+[Version notes](docs/versions.md) explain the earlier local-first app, private
+deployment snapshots, and preserved localization experiment. The snapshots
+remain historical deployment copies, not separate products.
 
-```text
-app/
-  api/
-    ai/
-      extract/                Document extraction
-      handover/               Legacy AI briefing
-      care-history-chat/      Health-page Q&A with citations
-      meeting/                Meeting summarizer
-      voice/                  Voice-to-task
-    telegram/                 Webhook capture
-    demo-data/                Supabase-backed loader with local fallback
-  page.tsx                    Splash + patient selector + dashboard
-  inbox/                      Forwarded item review queue
-  dashboard/                  Family Care Hub
-  timeline/                   WhatsApp-like structured feed
-  tasks/                      Task board (with handover-active banner)
-  capture/                    Image-to-record and voice-to-task
-  handover/
-    page.tsx                  Patient-centric Health page (4 sections)
-    [handoverId]/page.tsx     Incoming caregiver 5-tab wizard
-    [handoverId]/complete/    Completion screen (real or simulated)
-    legacy/                   Old AI briefing flow
-  meeting/                    Meeting assistant
-  load/                       Care-load visibility
-  settings/                   Demo settings, reset, and Wrapped links
-  wrapped/[memberId]/         Caregiver Wrapped experience
-components/
-  ui/                         shadcn-style primitives
-  providers/                  Local demo state provider (members, sessions, etc.)
-  handover/                   Health page sections, QR display, incoming wizard
-  wrapped/                    Wrapped cards (Cover, Tasks, ThankYou, etc.)
-lib/
-  ai/                         Schemas, OpenAI helper, mock outputs
-  supabase/                   Client/server Supabase helpers
-  permissions.ts              Permission types, role defaults, labels
-  handover-utils.ts           Auto-fill helpers (briefing, history, …)
-  qr-handover.ts              Encrypted QR encode/decode helpers
-  home-state.ts               Splash + accounts + selector persistence
-  seed-data.ts                Local fallback data
-supabase/
-  migrations/                 SQL schema
-  seed.sql                    Demo data
-```
+## License
 
-## Development
-
-```bash
-npm run dev          # next dev --webpack
-npm run build        # production build
-npm run typecheck    # tsc --noEmit
-npm run lint         # eslint
-npm test             # date labels, task routing, and Telegram parsing
-```
+This repository does not include a license file.
